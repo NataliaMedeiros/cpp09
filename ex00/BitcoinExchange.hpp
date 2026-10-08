@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <time.h>
 
 class BitcoinExchange
 {
@@ -14,13 +15,14 @@ class BitcoinExchange
 		std::map<std::string, double> _rates;
 		//the key is the date that will be a string and
 		// the exchange_rate is the value
-		void LoadDataBase(std::string fileName);
+		void loadDataBase(std::string fileName);
 	public:
 		BitcoinExchange();
 		BitcoinExchange(const BitcoinExchange &other);
 		BitcoinExchange &operator=(const BitcoinExchange &other);
 		~BitcoinExchange();
 
+		bool isDateValid(std::string& date);
 };
 
 #endif
