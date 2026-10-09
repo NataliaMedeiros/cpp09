@@ -22,7 +22,7 @@ class BitcoinExchange
 		BitcoinExchange &operator=(const BitcoinExchange &other);
 		~BitcoinExchange();
 
-		bool isDateValid(std::string& date);
+		void exchangeValue(char* fileName);
 };
 
 #endif

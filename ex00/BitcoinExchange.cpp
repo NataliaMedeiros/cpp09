@@ -28,11 +28,8 @@ static int getCurrentYear()
 	return (currentYear);
 }
 
-static bool isDayValid(std::string day, std::string month, std::string year)
+static bool isDayValid(int d, int m, int y)
 {
-	int d = stoi(day);
-	int m = stoi(month);
-	int y = stoi(year);
 	int maxDays;
 
 	if (m == 2)
@@ -48,18 +45,31 @@ static bool isDayValid(std::string day, std::string month, std::string year)
 	return (d <= maxDays);
 }
 
-bool BitcoinExchange::isDateValid(std::string& date)
+// static std::string trim(std::string data)
+// {
+// 	std::string dataTrimmed = "";
+// 	int start = 0;
+// 	int end = data.size() - 1;
+
+// 	while(data[start] == ' '){
+// 		start++;
+// 	}
+// 	while(data[end] == ' '){
+// 		end--;
+// 	}
+// 	dataTrimmed = data.substr(start, end + 1);
+// 	return (dataTrimmed);
+// }
+
+static bool isDateValid(std::string& date)
 {
-	//valida tamanho e formato da data
 	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
 		return (false);
-	//valide se exceto os dois '-' o date é composto
-	//somente por numeros
 	for (int i = 0; i < static_cast<int>(date.size()); i++)
 	{
 		if (i == 4 || i == 7)
 			continue;
-		if (!isdigit(date[i]))
+		if (!isdigit(static_cast<unsigned char>(date[i])))
 			return(false);
 	}
 
@@ -70,18 +80,16 @@ bool BitcoinExchange::isDateValid(std::string& date)
 	std::getline(ss, month, '-');
 	std::getline(ss, day, '-');
 
-	if (stoi(year) <= 0 || stoi(year) > getCurrentYear())
-		return (false);
+	int y = stoi(year);
+	int m = stoi(month);
+	int d = stoi(day);
 
-	if (stoi(month) < 1 || stoi(month) > 12)
+	if (y <= 0 || y > getCurrentYear())
 		return (false);
-
-	if (!isDayValid(day, month, year))
+	if (m < 1 || m > 12)
 		return (false);
-
-	// std::cout << "year: " << year << std::endl;
-	// std::cout << "month : " << month << std::endl;
-	// std::cout << "day : " << day << std::endl;
+	if (!isDayValid(d, m, y))
+		return (false);
 	return (true);
 }
 
@@ -113,4 +121,11 @@ void BitcoinExchange::loadDataBase(std::string fileName)
 		_rates.insert({date, value});
 	}
 	file.close();
+}
+
+void BitcoinExchange::exchangeValue(char* fileName){
+	//validate input
+	//check input's name
+	//check if the file exist and open
+	//check dat inside the file
 }
