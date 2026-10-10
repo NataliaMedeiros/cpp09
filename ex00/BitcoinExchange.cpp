@@ -28,6 +28,22 @@ static int getCurrentYear()
 	return (currentYear);
 }
 
+static std::string trim(std::string data)
+{
+	std::string dataTrimmed = "";
+	int start = 0;
+	int end = data.size() - 1;
+
+	while(data[start] == ' '){
+		start++;
+	}
+	while(data[end] == ' '){
+		end--;
+	}
+	dataTrimmed = data.substr(start, end + 1);
+	return (dataTrimmed);
+}
+
 static bool isDayValid(int d, int m, int y)
 {
 	int maxDays;
@@ -45,32 +61,16 @@ static bool isDayValid(int d, int m, int y)
 	return (d <= maxDays);
 }
 
-// static std::string trim(std::string data)
-// {
-// 	std::string dataTrimmed = "";
-// 	int start = 0;
-// 	int end = data.size() - 1;
-
-// 	while(data[start] == ' '){
-// 		start++;
-// 	}
-// 	while(data[end] == ' '){
-// 		end--;
-// 	}
-// 	dataTrimmed = data.substr(start, end + 1);
-// 	return (dataTrimmed);
-// }
-
-static bool isDateValid(std::string& date)
+static bool isDateValid(const std::string& date)
 {
 	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
-		return (false);
+		return (std::cout << "first if" <<std::endl,false);
 	for (int i = 0; i < static_cast<int>(date.size()); i++)
 	{
 		if (i == 4 || i == 7)
 			continue;
 		if (!isdigit(static_cast<unsigned char>(date[i])))
-			return(false);
+			return(std::cout << "second if" <<std::endl,false);
 	}
 
 	std::string year, month, day;
@@ -85,9 +85,9 @@ static bool isDateValid(std::string& date)
 	int d = stoi(day);
 
 	if (y <= 0 || y > getCurrentYear())
-		return (false);
+		return (std::cout << "third if" <<std::endl,false);
 	if (m < 1 || m > 12)
-		return (false);
+		return (std::cout << m <<std::endl,false);
 	if (!isDayValid(d, m, y))
 		return (false);
 	return (true);
@@ -103,29 +103,73 @@ void BitcoinExchange::loadDataBase(std::string fileName)
 	getline(file, line);
 	while(getline(file, line))
 	{
-		if (line.empty())
-			getline(file, line);
-		//aqui eu preciso pensar em edge case relacionados
-		//a data and value
-		//trim - to make sure there's no extra space
-		//check if date is valid
-
-		int pos = line.find(',');
-		std::string date = line.substr(0, pos);
-		//antes de entrar na isDateValid é bom ter algum
-		//trim garantindo que nao esta sendo pego nenhum espaco
-		//extra no comeco ou final
+		std::string::size_type pos = line.find(',');
+		if (pos == std::string::npos)
+			throw std::runtime_error("Error: Invalid CSV line");
+		std::string date = trim(line.substr(0, pos));
 		if (!isDateValid(date))
 			throw std::runtime_error("Error: Date is invalid");
-		double value = std::stod(line.substr(pos + 1));
+		std::string valueStr = trim(line.substr(pos + 1));
+		size_t consumed;
+		double value = std::stod(valueStr, &consumed);
+		if (consumed != valueStr.size() || !std::isfinite(value))
+			throw std::runtime_error("Error: Invalid value");
 		_rates.insert({date, value});
 	}
 	file.close();
 }
 
-void BitcoinExchange::exchangeValue(char* fileName){
-	//validate input
-	//check input's name
-	//check if the file exist and open
-	//check dat inside the file
+static bool isHeaderValid(const std::string& header){
+	if (header.empty())
+		return (false);
+	if (header != "date | value")
+		return (false);
+	return (true);
+}
+
+static double getAndValidadeValue(std::string valueStr)
+{
+	size_t consumed = 0;
+	double value = std::stod(valueStr, &consumed);
+	if (consumed != valueStr.size() || !std::isfinite(value))
+			std::cerr << "Error: bad input => " << valueStr << std::endl;
+	if(value < 0)
+		std::cerr << "Error: not a positive number." << std::endl;
+	if (value > 1000)
+		std::cerr << "Error: too large a number." << std::endl;
+	return value;
+}
+
+void BitcoinExchange::exchangeValue(const std::string& fileName)
+{
+	//checks input name
+	if (fileName.substr(fileName.find(".")) != ".txt")
+		throw std::invalid_argument("Check input format");
+	//open input file
+	std::ifstream file(fileName);
+	//check if input file opened correctly
+	if (!file.is_open())
+		throw std::invalid_argument("Invalid file");
+	//check data inside the file
+	std::string header;
+	getline(file, header);
+	//validade is header is at the correct format
+	if (!isHeaderValid(header))
+		throw std::invalid_argument("Invalid header");
+	std::string line;
+	while(getline(file, line))
+	{
+		std::string::size_type pos = line.find("|");
+		std::string date = trim(line.substr(0, pos));
+		//vou precisar criar uma funcao especifica para input
+		if (!isDateValid(date))
+			std::cout << "Error" << std::endl;
+		std::string valueStr = trim(line.substr(pos + 1));
+		double value = getAndValidadeValue(valueStr);
+		std::cout << "|" << value << "|" << std::endl;
+	}
+	//split date and value
+	//validade date
+	//validade value
+
 }

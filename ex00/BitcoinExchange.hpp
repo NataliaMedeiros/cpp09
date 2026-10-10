@@ -22,7 +22,7 @@ class BitcoinExchange
 		BitcoinExchange &operator=(const BitcoinExchange &other);
 		~BitcoinExchange();
 
-		void exchangeValue(char* fileName);
+		void exchangeValue(const std::string& fileName);
 };
 
 #endif
