@@ -205,10 +205,6 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 	std::string line;
 	while(getline(file, line))
 	{
-		//preciso lidar com quando o pos nao é encontrado por exemplo
-		// na linha em que eu nao coloco nenhum value para a date
-		//vou precisar criar uma funcao especifica para input
-		//considerar opcao de usar try catch aqui
 		try
 		{
 			std::string::size_type pos = line.find("|");
