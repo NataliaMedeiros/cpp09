@@ -61,6 +61,38 @@ static bool isDayValid(int d, int m, int y)
 	return (d <= maxDays);
 }
 
+static void getAndvalidateDate(const std::string& date)
+{
+	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
+		throw std::runtime_error("Error: Check date fomat");
+	for (int i = 0; i < static_cast<int>(date.size()); i++)
+	{
+		if (i == 4 || i == 7)
+			continue;
+		if (!isdigit(static_cast<unsigned char>(date[i])))
+			throw std::runtime_error("Error: Invalid date");
+	}
+
+	std::string year, month, day;
+
+	std::stringstream ss(date);
+	std::getline(ss, year, '-');
+	std::getline(ss, month, '-');
+	std::getline(ss, day, '-');
+
+	int y = stoi(year);
+	int m = stoi(month);
+	int d = stoi(day);
+
+	if (y <= 0 || y > getCurrentYear())
+		throw std::runtime_error("Error: Invalid year");
+	if (m < 1 || m > 12)
+		throw std::runtime_error("Error: Invalid month");
+	if (!isDayValid(d, m, y))
+		throw std::runtime_error("Error: Invalid Day");
+	// return (true);
+}
+
 static bool isDateValid(const std::string& date)
 {
 	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
@@ -115,7 +147,6 @@ void BitcoinExchange::loadDataBase(std::string fileName)
 		double value = std::stod(valueStr, &consumed);
 		if (consumed != valueStr.size() || !std::isfinite(value))
 			throw std::runtime_error("Error: Invalid value");
-		// std::cout << "----> date: " << date << "--->value: " << value << std::endl;
 		_rates.insert({date, value});
 	}
 	for (auto _rates : _rates)
@@ -176,31 +207,40 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 	{
 		//preciso lidar com quando o pos nao é encontrado por exemplo
 		// na linha em que eu nao coloco nenhum value para a date
-		std::string::size_type pos = line.find("|");
-		std::string date = trim(line.substr(0, pos));
 		//vou precisar criar uma funcao especifica para input
-		if (!isDateValid(date))
-			std::cout << "--Error" << std::endl;
-		std::string valueStr = trim(line.substr(pos + 1));
-		//se o value for invalido ele vai retornar -1
-		//e entao preciso pensar no que vou fazer com esse -1
-		double value = getAndValidadeValue(valueStr);
-		// std::cout << "|" << value << "|" << std::endl;
-		//TODO estudar melhor map e refazer essa parte
-		if (value != -1)
+		//considerar opcao de usar try catch aqui
+		try
 		{
-			auto it =_rates.lower_bound(date);
-			double result = 0;
-
-			if(it == _rates.begin() && it->first != date)
-				std::cout << "Error: no valid date found." << std::endl;
-			else
+			std::string::size_type pos = line.find("|");
+			std::string date = trim(line.substr(0, pos));
+			getAndvalidateDate(date);
+			// if (!isDateValid(date))
+			// 	std::cout << "Error: bad input =>" << date << std::endl;
+			// std::string valueStr = trim(line.substr(pos + 1));
+			//se o value for invalido ele vai retornar -1
+			//e entao preciso pensar no que vou fazer com esse -1
+			double value = getAndValidadeValue(trim(line.substr(pos + 1)));
+			// std::cout << "|" << value << "|" << std::endl;
+			//TODO estudar melhor map e refazer essa parte
+			if (value != -1)
 			{
-				if (it->first != date)
-					it--;
-				result = value * it->second;
-				std::cout << date << " => " << value << " = " << result << std::endl;
+				auto it =_rates.lower_bound(date);
+				double result = 0;
+
+				if(it == _rates.begin() && it->first != date)
+					std::cout << "Error: no valid date found." << std::endl;
+				else
+				{
+					if (it->first != date)
+						it--;
+					result = value * it->second;
+					std::cout << date << " => " << value << " = " << result << std::endl;
+				}
 			}
 		}
+		catch(const std::exception &e){
+			std::cerr << e.what() << std::endl;
+		}
+
 	}
 }
