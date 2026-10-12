@@ -3,8 +3,6 @@
 BitcoinExchange::BitcoinExchange()
 {
 	loadDataBase("data.csv");
-	//Here I need to call a function that you load the
-	//data base and fill the map (_rates)
 }
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &other) : _rates(other._rates) {}
@@ -216,8 +214,6 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 			//se o value for invalido ele vai retornar -1
 			//e entao preciso pensar no que vou fazer com esse -1
 			double value = getAndValidadeValue(trim(line.substr(pos + 1)));
-			// std::cout << "|" << value << "|" << std::endl;
-			//TODO estudar melhor map e refazer essa parte
 			if (value != -1)
 			{
 				auto it =_rates.lower_bound(date);
