@@ -16,31 +16,17 @@ BitcoinExchange& BitcoinExchange::operator=(const BitcoinExchange &other)
 
 BitcoinExchange::~BitcoinExchange(){}
 
-static int getCurrentYear()
+static std::string trim(const std::string& data)
 {
-	std::time_t now = std::time(NULL);
-	std::tm* localTime = std::localtime(&now);
+	std::string::size_type start = data.find_first_not_of(" \t\r\n");
 
-	int currentYear = localTime->tm_year + 1900;
+	if (start == std::string::npos)
+		return "";
 
-	return (currentYear);
+	std::string::size_type end = data.find_last_not_of(" \t\r\n");
+	return data.substr(start, end - start + 1);
 }
 
-static std::string trim(std::string data)
-{
-	std::string dataTrimmed = "";
-	int start = 0;
-	int end = data.size() - 1;
-
-	while(data[start] == ' '){
-		start++;
-	}
-	while(data[end] == ' '){
-		end--;
-	}
-	dataTrimmed = data.substr(start, end + 1);
-	return (dataTrimmed);
-}
 
 static bool isDayValid(int d, int m, int y)
 {
@@ -56,178 +42,151 @@ static bool isDayValid(int d, int m, int y)
 	else
 		maxDays = ((m % 2 == 0) ? 31 : 30);
 
-	return (d <= maxDays);
+	return (d > 0 && d <= maxDays);
 }
 
-static void getAndvalidateDate(const std::string& date)
+static void validateDate(const std::string& date)
 {
 	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
-		throw std::runtime_error("Error: Check date fomat");
+		throw std::runtime_error("Error: bad input => " + date);
 	for (int i = 0; i < static_cast<int>(date.size()); i++)
 	{
 		if (i == 4 || i == 7)
 			continue;
 		if (!isdigit(static_cast<unsigned char>(date[i])))
-			throw std::runtime_error("Error: Invalid date");
+			throw std::runtime_error("Error: bad input => " + date);
 	}
 
 	std::string year, month, day;
-
 	std::stringstream ss(date);
 	std::getline(ss, year, '-');
 	std::getline(ss, month, '-');
 	std::getline(ss, day, '-');
-
 	int y = stoi(year);
 	int m = stoi(month);
 	int d = stoi(day);
 
-	if (y <= 0 || y > getCurrentYear())
-		throw std::runtime_error("Error: Invalid year");
-	if (m < 1 || m > 12)
-		throw std::runtime_error("Error: Invalid month");
-	if (!isDayValid(d, m, y))
-		throw std::runtime_error("Error: Invalid Day");
-	// return (true);
+	if (y <= 0 || m < 1 || m > 12
+		|| !isDayValid(d, m, y))
+		throw std::runtime_error("Error: bad input => " + date);
 }
 
-static bool isDateValid(const std::string& date)
+static void validateHeader(const std::string &header, const std::string &expectedHeader)
 {
-	if (date.size() != 10 || date[4] != '-' || date[7] != '-')
-		return (false);
-	for (int i = 0; i < static_cast<int>(date.size()); i++)
-	{
-		if (i == 4 || i == 7)
-			continue;
-		if (!isdigit(static_cast<unsigned char>(date[i])))
-			return(false);
-	}
-
-	std::string year, month, day;
-
-	std::stringstream ss(date);
-	std::getline(ss, year, '-');
-	std::getline(ss, month, '-');
-	std::getline(ss, day, '-');
-
-	int y = stoi(year);
-	int m = stoi(month);
-	int d = stoi(day);
-
-	if (y <= 0 || y > getCurrentYear())
-		return (false);
-	if (m < 1 || m > 12)
-		return (false);
-	if (!isDayValid(d, m, y))
-		return (false);
-	return (true);
+	if (trim(header) != expectedHeader)
+		throw std::runtime_error("Error: invalid header");
 }
 
-//checar se precisa pegar 2 casas decimais e arrumar
+static double getAndValidadeValue(std::string valueStr)
+{
+	if (valueStr.empty())
+		throw std::runtime_error("Error: bad input => " + valueStr);
+	size_t consumed = 0;
+	for (size_t i = 0; i < valueStr.size(); i++)
+	{
+		if (isalpha(static_cast<unsigned char>(valueStr[i])))
+			throw std::runtime_error("Error: bad input => " + valueStr);
+	}
+	double value;
+	try
+	{
+		value = std::stod(valueStr, &consumed);
+	}
+	catch (const std::exception&)
+	{
+		throw std::runtime_error("Error: bad input => " + valueStr);
+	}
+	if (consumed != valueStr.size() || !std::isfinite(value))
+		throw std::runtime_error("Error: bad input => " + valueStr);
+	if(value < 0)
+		throw std::runtime_error("Error: not a positive number.");
+	if (value > 1000)
+		throw std::runtime_error("Error: too large a number.");
+	return value;
+}
+
+void BitcoinExchange::printRates()
+{
+	for (auto _rates : _rates)
+	{
+		std::cout << _rates.first << " is: "
+		<< std::fixed << std::setprecision(2)
+		<< _rates.second << "\n";
+	}
+}
+
 void BitcoinExchange::loadDataBase(std::string fileName)
 {
-	std::string line;
 	std::ifstream file(fileName);
-
 	if(!file.is_open())
-		throw std::runtime_error("Error: Data file didn't open correctly");
-	getline(file, line);
+	throw std::runtime_error("Error: Data file didn't open correctly");
+
+	std::string header;
+	getline(file, header);
+	validateHeader(header, "date,exchange_rate");
+
+	std::string line;
 	while(getline(file, line))
 	{
 		std::string::size_type pos = line.find(',');
 		if (pos == std::string::npos)
 			throw std::runtime_error("Error: Invalid CSV line");
 		std::string date = trim(line.substr(0, pos));
-		if (!isDateValid(date))
-			throw std::runtime_error("Error: Date is invalid");
+		validateDate(date);
 		std::string valueStr = trim(line.substr(pos + 1));
-		size_t consumed;
-		double value = std::stod(valueStr, &consumed);
-		if (consumed != valueStr.size() || !std::isfinite(value))
+		double value;
+		size_t consumed = 0;
+		try
+		{
+			value = std::stod(valueStr, &consumed);
+		}
+		catch (const std::exception&)
+		{
+			throw std::runtime_error("Error: Invalid value");
+		}
+		if (consumed != valueStr.size() || !std::isfinite(value) || value < 0)
 			throw std::runtime_error("Error: Invalid value");
 		_rates.insert({date, value});
-	}
-	for (auto _rates : _rates)
-	{
-		std::cout << _rates.first << " is: " << _rates.second << "\n";
 	}
 	file.close();
 }
 
-static bool isHeaderValid(const std::string& header){
-	if (header.empty())
-		return (false);
-	if (header != "date | value")
-		return (false);
-	return (true);
-}
-
-static double getAndValidadeValue(std::string valueStr)
-{
-	size_t consumed = 0;
-	double value = std::stod(valueStr, &consumed);
-	if (consumed != valueStr.size() || !std::isfinite(value))
-	{
-		std::cerr << "Error: bad input => " << valueStr << std::endl;
-		return (-1);
-	}
-	if(value < 0)
-	{
-		std::cerr << "Error: not a positive number." << std::endl;
-		return (-1);
-	}
-	if (value > 1000)
-	{
-		std::cerr << "Error: too large a number." << std::endl;
-		return (-1);
-	}
-	return value;
-}
-
 void BitcoinExchange::exchangeValue(const std::string& fileName)
 {
-	//checks input name
-	if (fileName.substr(fileName.find(".")) != ".txt")
-		throw std::invalid_argument("Check input format");
-	//open input file
 	std::ifstream file(fileName);
-	//check if input file opened correctly
 	if (!file.is_open())
-		throw std::invalid_argument("Invalid file");
-	//check data inside the file
+		throw std::invalid_argument("Error: could not open file.");
+
 	std::string header;
 	getline(file, header);
-	//validade is header is at the correct format
-	if (!isHeaderValid(header))
-		throw std::invalid_argument("Invalid header");
+	validateHeader(header, "date | value");
+
+	std::cout << std::setprecision(10);
+
 	std::string line;
 	while(getline(file, line))
 	{
 		try
 		{
 			std::string::size_type pos = line.find("|");
+			if (pos == std::string::npos)
+    			throw std::runtime_error("Error: bad input => " + line);
 			std::string date = trim(line.substr(0, pos));
-			getAndvalidateDate(date);
-			// if (!isDateValid(date))
-			// 	std::cout << "Error: bad input =>" << date << std::endl;
-			// std::string valueStr = trim(line.substr(pos + 1));
-			//se o value for invalido ele vai retornar -1
-			//e entao preciso pensar no que vou fazer com esse -1
+			validateDate(date);
 			double value = getAndValidadeValue(trim(line.substr(pos + 1)));
-			if (value != -1)
-			{
-				auto it =_rates.lower_bound(date);
-				double result = 0;
+			auto it =_rates.lower_bound(date);
+			double result = 0;
 
-				if(it == _rates.begin() && it->first != date)
-					std::cout << "Error: no valid date found." << std::endl;
-				else
-				{
-					if (it->first != date)
-						it--;
-					result = value * it->second;
-					std::cout << date << " => " << value << " = " << result << std::endl;
-				}
+			if (_rates.empty())
+				std::cerr << "Error: database is empty." << std::endl;
+			else if(it == _rates.begin() && it->first != date)
+				std::cout << "Error: no valid date found." << std::endl;
+			else
+			{
+				if(it == _rates.end() || it->first != date)
+					it--;
+				result = value * it->second;
+				std::cout << date << " => " << value << " = " << result << std::endl;
 			}
 		}
 		catch(const std::exception &e){
@@ -236,3 +195,13 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 
 	}
 }
+
+// static int getCurrentYear()
+// {
+// 	std::time_t now = std::time(NULL);
+// 	std::tm* localTime = std::localtime(&now);
+
+// 	int currentYear = localTime->tm_year + 1900;
+
+// 	return (currentYear);
+// }

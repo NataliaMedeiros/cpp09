@@ -8,13 +8,12 @@
 #include <sstream>
 #include <stdexcept>
 #include <time.h>
+#include <cctype>
 
 class BitcoinExchange
 {
 	private:
 		std::map<std::string, double> _rates;
-		//the key is the date that will be a string and
-		// the exchange_rate is the value
 		void loadDataBase(std::string fileName);
 	public:
 		BitcoinExchange();
@@ -23,6 +22,7 @@ class BitcoinExchange
 		~BitcoinExchange();
 
 		void exchangeValue(const std::string& fileName);
+		void printRates();
 };
 
 #endif
