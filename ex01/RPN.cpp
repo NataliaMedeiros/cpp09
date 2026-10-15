@@ -49,9 +49,34 @@ static void printStack(std::stack<int> s)
     std::cout << x << std::endl;;
 }
 
+static int getNumber(const std::stack<int>& nb)
+{
+	if (nb.empty())
+		throw std::runtime_error("Invalid expression");
+	return (nb.top());
+}
+
+static int calculate(char arg, int a, int b)
+{
+	switch (arg)
+	{
+		case '+':
+			return (a + b);
+		case '-':
+			return (a - b);
+		case '*':
+			return (a * b);
+		case '/':
+			if (b == 0)
+				throw std::runtime_error ("Division by zero");
+			return (a / b);
+		default:
+			throw std::runtime_error ("Invalid operator");
+	}
+}
+
 void RPN::solvingRPN(const char* arg)
 {
-	int n;
 	std::string operators = "+-*/";
 	int a;
 	int b;
@@ -62,39 +87,15 @@ void RPN::solvingRPN(const char* arg)
 		{
 			if (arg[i + 1] != ' '&& arg[i + 1] != '\0')
 				throw std::runtime_error("Number bigger than 9");
-			n = arg[i] - '0';
 			nb.push(arg[i] - '0');
 		}
 		if (operators.find(arg[i]) != std::string::npos)
 		{
-			if (nb.empty())
-				throw std::runtime_error("Invalid expression");
-			b = nb.top();
+			b = getNumber(nb);
 			nb.pop();
-			if (nb.empty())
-				throw std::runtime_error("Invalid expression");
-			a = nb.top();
+			a = getNumber(nb);
 			nb.pop();
-			switch (arg[i])
-			{
-				case '+':
-					n = a + b;
-					break;
-				case '-':
-					n = a - b;
-					break;
-				case '*':
-					n = a * b;
-					break;
-				case '/':
-					if (b == 0)
-						throw std::runtime_error ("Division by zero");
-					n = a / b;
-					break;
-				default:
-					break;
-			}
-			nb.push(n);
+			nb.push(calculate(arg[i], a, b));
 		}
 	}
 	if (nb.size() != 1)
