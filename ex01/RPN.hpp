@@ -3,23 +3,22 @@
 
 #include <iostream>
 #include <stack>
-#include <exception>
-#include <string.h>
-#include <ctype.h>
+#include <stdexcept>
+#include <string>
+#include <cctype>
 
 class RPN
 {
 	private:
 		std::stack<int> nb;
+		bool isArgValid(const char* arg);
+		void solvingRPN(const char* arg);
 	public:
 		RPN();
 		RPN(const char* arg);
 		RPN(const RPN& other);
 		RPN& operator=(const RPN& other);
 		~RPN();
-
-		bool isArgValid(const char* arg);
-		void solvingRPN(const char* arg);
 };
 
 #endif
