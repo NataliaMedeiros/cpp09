@@ -53,7 +53,7 @@ static void validateDate(const std::string& date)
 	{
 		if (i == 4 || i == 7)
 			continue;
-		if (!isdigit(static_cast<unsigned char>(date[i])))
+		if (!std::isdigit(static_cast<unsigned char>(date[i])))
 			throw std::runtime_error("Error: bad input => " + date);
 	}
 
@@ -62,9 +62,9 @@ static void validateDate(const std::string& date)
 	std::getline(ss, year, '-');
 	std::getline(ss, month, '-');
 	std::getline(ss, day, '-');
-	int y = stoi(year);
-	int m = stoi(month);
-	int d = stoi(day);
+	int y = std::stoi(year);
+	int m = std::stoi(month);
+	int d = std::stoi(day);
 
 	if (y <= 0 || m < 1 || m > 12
 		|| !isDayValid(d, m, y))
@@ -107,7 +107,7 @@ static double getAndValidadeValue(std::string valueStr)
 
 void BitcoinExchange::printRates()
 {
-	for (auto _rates : _rates)
+	for (auto const &_rates : _rates)
 	{
 		std::cout << _rates.first << " is: "
 		<< std::fixed << std::setprecision(2)
@@ -156,6 +156,8 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 	std::ifstream file(fileName);
 	if (!file.is_open())
 		throw std::invalid_argument("Error: could not open file.");
+	if (_rates.empty())
+		throw std::runtime_error("Error: Data file is empty");
 
 	std::string header;
 	getline(file, header);
@@ -175,24 +177,19 @@ void BitcoinExchange::exchangeValue(const std::string& fileName)
 			validateDate(date);
 			double value = getAndValidadeValue(trim(line.substr(pos + 1)));
 			auto it =_rates.lower_bound(date);
-			double result = 0;
 
-			if (_rates.empty())
-				std::cerr << "Error: database is empty." << std::endl;
-			else if(it == _rates.begin() && it->first != date)
-				std::cout << "Error: no valid date found." << std::endl;
+			if(it == _rates.begin() && it->first != date)
+				std::cerr << "Error: no valid date found." << std::endl;
 			else
 			{
 				if(it == _rates.end() || it->first != date)
 					it--;
-				result = value * it->second;
-				std::cout << date << " => " << value << " = " << result << std::endl;
+				std::cout << date << " => " << value << " = " << value * it->second << std::endl;
 			}
 		}
 		catch(const std::exception &e){
 			std::cerr << e.what() << std::endl;
 		}
-
 	}
 }
 

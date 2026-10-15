@@ -7,8 +7,9 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <time.h>
 #include <cctype>
+#include <iomanip>
+#include <cmath>
 
 class BitcoinExchange
 {
