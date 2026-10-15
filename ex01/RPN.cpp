@@ -28,25 +28,12 @@ bool RPN::isArgValid(const char* arg)
 
 	for (int i = 0; arg[i] != '\0'; i++)
 	{
-		if (!isdigit(arg[i]) && arg[i] != ' '
+		if (!isdigit(static_cast<unsigned char>(arg[i]))
+			&& arg[i] != ' '
 			&& operators.find(arg[i]) == std::string::npos)
 			return (false);
 	}
 	return (true);
-}
-
-static void printStack(std::stack<int> s)
-{
-    if (s.empty())
-        return;
-
-    int x = s.top();
-
-    s.pop();
-
-    printStack(s);
-
-    std::cout << x << std::endl;;
 }
 
 static int getNumber(const std::stack<int>& nb)
@@ -83,13 +70,14 @@ void RPN::solvingRPN(const char* arg)
 
 	for (int i = 0; arg[i] != '\0'; i++)
 	{
-		if (isdigit(arg[i]))
+		if (isdigit(static_cast<unsigned char>(arg[i])))//convert arg to unsigned char
 		{
-			if (arg[i + 1] != ' '&& arg[i + 1] != '\0')
+			if (arg[i + 1] != ' '&& arg[i + 1] != '\0'
+				&& operators.find(arg[i + 1]) == std::string::npos)
 				throw std::runtime_error("Number bigger than 9");
 			nb.push(arg[i] - '0');
 		}
-		if (operators.find(arg[i]) != std::string::npos)
+		else if (operators.find(arg[i]) != std::string::npos)
 		{
 			b = getNumber(nb);
 			nb.pop();
@@ -100,5 +88,19 @@ void RPN::solvingRPN(const char* arg)
 	}
 	if (nb.size() != 1)
 		throw std::runtime_error("Invalid expression");
-	printStack(nb);
+	std::cout << nb.top() << std::endl;
 }
+
+// static void printStack(std::stack<int> s)
+// {
+//     if (s.empty())
+//         return;
+
+//     int x = s.top();
+
+//     s.pop();
+
+//     printStack(s);
+
+//     std::cout << x << std::endl;;
+// }

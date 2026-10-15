@@ -45,3 +45,17 @@ test_rpn "Multiple spaces" "2     3      +" "5"
 test_rpn "Negative result" "2 5 -" "-3"
 test_rpn "Multiple operations" "2 3 + 4 *" "20"
 test_rpn "Multiple operations" "7 7 * 7 -" "42"
+test_rpn "No space" "2+2" "Error: Invalid expression"
+
+#Expression	Expected behaviour
+#./RPN "8 9 * 9 - 9 - 9 - 4 - 1 +"	42
+#./RPN "7 7 * 7 -"	42
+#./RPN "1 2 * 2 / 2 * 2 4 - +"	0
+#./RPN "(1 + 1)"	Error
+#./RPN "2 +"	Error
+#./RPN "2 3"	Error
+#./RPN "8 0 /"	Error
+#./RPN "2 3 + +"	Error
+#./RPN "2   3   +"	5
+#./RPN "9 9 * 9 * 9 * 9 * 9 * 9 * 9 * 9 * 9 *" \(9^{10} = 3,486,784,401\)
+#INT_MIN / -1
