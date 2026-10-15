@@ -60,8 +60,10 @@ void RPN::solvingRPN(const char* arg)
 	{
 		if (isdigit(arg[i]))
 		{
+			if (arg[i + 1] != ' '&& arg[i + 1] != '\0')
+				throw std::runtime_error("Number bigger than 9");
 			n = arg[i] - '0';
-				nb.push(n);
+			nb.push(arg[i] - '0');
 		}
 		if (operators.find(arg[i]) != std::string::npos)
 		{
@@ -92,16 +94,10 @@ void RPN::solvingRPN(const char* arg)
 				default:
 					break;
 			}
-			// if (arg[i] == '+')
-			// 	n = a + b;
-			// else if (arg[i] == '-')
-			// 	n = a - b;
-			// else if (arg[i] == '*')
-			// 	n = a * b;
-			// else
-			// 	n = a / b;
+			nb.push(n);
 		}
-		nb.push(n);
 	}
+	if (nb.size() != 1)
+		throw std::runtime_error("Invalid expression");
 	printStack(nb);
 }
