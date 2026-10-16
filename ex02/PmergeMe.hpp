@@ -6,10 +6,10 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-#include <algorithm>
 #include <climits>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 
 class PmergeMe
 {
@@ -18,14 +18,11 @@ class PmergeMe
 		std::vector<int> _vecResult;
 		std::deque<int>  _deqResult;
 
-		template <typename Cont>
-		void fordJohnson(Cont& ids) const;
+		void fordJohnsonVector(std::vector<std::size_t>&);
+		void fordJohnsonDeque(std::deque<std::size_t>&);
 
-		template <typename IdCont, typename OutCont>
-		double sortAndTime(OutCont& out) const;
 	public:
 		PmergeMe();
-		explicit PmergeMe(const std::vector<int>& input);
 		PmergeMe(const PmergeMe& other);
 		PmergeMe& operator=(const PmergeMe& other);
 		~PmergeMe();
