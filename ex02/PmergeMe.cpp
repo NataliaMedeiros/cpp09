@@ -33,27 +33,55 @@ const std::deque<int>&  PmergeMe::getDequeResult() const
 	return _deqResult;
 }
 
+//ford johnson ordena fazendo poucas comparacoes
+//forma pares e compara cada par
+//ordena so os maiores recursivamente
+//insere os menores de volta na lista numa ordem otimizada
+
 void PmergeMe::fordJohnsonVector(std::vector<std::size_t>& ids)
 {
+	//nesse inicio a ideia é apenas contabilizar a quantidade de elemntos
 	const std::size_t n = ids.size();
+	//esse if é o que faz parar a recursao
 	if (n < 2)
 		return;
 
 	const std::vector<int>& d = _input;
+	// cmp é uma lambda (função sem nome, do C++11).
+	//Ela recebe duas posições a e b e responde:
+	//“o valor em a é menor que o valor em b?”
+	//[&d] significa que a lambda enxerga d por referência.
+	// lambda É uma função sem nome, escrita no meio do código (C++11):
+	// a lambda escolhe com informacao que vai entro dos colchetes []
+	// nao usar nada [] colchetes vazio
+	// copiar uma variavel de fora [d] - copia d dentro do lambda
+	// usar referencia sem copiar [&d] - referencia d
+	// [&] tudo que usar usa por referencia
+	//[=] tudo que for usado usa por copia
+	//auto é o tipo da variavel cmp que é pego automaticamente
+	//se eu quisesse explicitar o tipo de retorno da funcao lambida
+	//eu poderia escrever assim
+	//auto cmp = [&d](std::size_t a, std::size_t b) -> bool { return d[a] < d[b]; };
 	auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
 
-	// 1. forma os pares: vencedor = maior, perdedor = menor
+	// 1. forma os pares: winners = maior, loserOf = menor
 	std::vector<std::size_t> winners;
 	std::vector<std::size_t> loserOf(d.size(), 0);
 	for (std::size_t i = 0; i + 1 < n; i += 2) {
+		//qui pega os ids
 		std::size_t a = ids[i], b = ids[i + 1];
+		// dentro da funcao  cmp pega os valores por referencia
 		if (cmp(a, b))
 			std::swap(a, b);
 		winners.push_back(a);
+		//loserOf usar o numero de ids[i] pego acima na variavel a, por isso
+		//nunca tem repeticao mesmo se tiver numero repetido
 		loserOf[a] = b;
 	}
-	const bool hasStraggler = (n % 2 == 1);
-	const std::size_t straggler = hasStraggler ? ids[n - 1] : 0;
+	//checa se tem elemento impar e portanto nao sera pareado
+	const bool hasLeftover = (n % 2 == 1);
+	//perador ternário: condição ? valor_se_verdadeiro : valor_se_falso.
+	const std::size_t straggler = hasLeftover ? ids[n - 1] : 0;
 
 	// 2. ordena os vencedores recursivamente
 	fordJohnsonVector(winners);
@@ -82,7 +110,7 @@ void PmergeMe::fordJohnsonVector(std::vector<std::size_t>& ids)
 	}
 
 	// 5. o elemento sobrando: busca binaria na cadeia inteira
-	if (hasStraggler)
+	if (hasLeftover)
 		chain.insert(std::lower_bound(chain.begin(), chain.end(), straggler, cmp), straggler);
 
 	ids = std::move(chain);
@@ -107,15 +135,26 @@ void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
 		winners.push_back(a);
 		loserOf[a] = b;
 	}
-	const bool hasStraggler = (n % 2 == 1);
-	const std::size_t straggler = hasStraggler ? ids[n - 1] : 0;
+	const bool hasLeftover = (n % 2 == 1);
+	const std::size_t straggler = hasLeftover ? ids[n - 1] : 0;
 
 	// 2. ordena os vencedores recursivamente
 	fordJohnsonDeque(winners);
 
-	// 3. cadeia principal: b1 (de graca) + vencedores ordenados
+	// 3. cadeia principal
+	// inicializa a cadeia
 	std::deque<std::size_t> chain;
+	// nesse caso o loserOf que é par do winner na posicao 0
+	// é chamado primeiro porque a lista de winners da ordenada
+	// em ordem crescente, portando o winner na posicao 0
+	// é o menor de todos os winners, consequentemente o par dele
+	// é menor que ele, pois eles ja foram comparados la atras
+	// de forma que a posicao correta dele é antes de comecar os winners.
 	chain.push_back(loserOf[winners[0]]);
+	//isso copia tods os vencedores para a cadeia chain
+	// de forma que agora o chain é composto pelo par do
+	// winner[0] seguido pela lista de todos os winners, desde
+	// winners[0] ate [winners[winners.size() - 1]]
 	chain.insert(chain.end(), winners.begin(), winners.end());
 
 	// 4. insere b2..bm na ordem de Jacobsthal
@@ -137,7 +176,7 @@ void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
 	}
 
 	// 5. o elemento sobrando: busca binaria na cadeia inteira
-	if (hasStraggler)
+	if (hasLeftover)
 		chain.insert(std::lower_bound(chain.begin(), chain.end(), straggler, cmp), straggler);
 
 	ids = std::move(chain);
