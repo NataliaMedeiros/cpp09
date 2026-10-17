@@ -38,13 +38,13 @@ const std::deque<int>&  PmergeMe::getDequeResult() const
 //ordena so os maiores recursivamente
 //insere os menores de volta na lista numa ordem otimizada
 
-void PmergeMe::fordJohnsonVector(std::vector<std::size_t>& ids)
+std::vector<std::size_t> PmergeMe::fordJohnsonVector(const std::vector<std::size_t>& ids) const
 {
 	//nesse inicio a ideia é apenas contabilizar a quantidade de elemntos
 	const std::size_t n = ids.size();
 	//esse if é o que faz parar a recursao
 	if (n < 2)
-		return;
+		return ids;
 
 	const std::vector<int>& d = _input;
 	// cmp é uma lambda (função sem nome, do C++11).
@@ -81,10 +81,10 @@ void PmergeMe::fordJohnsonVector(std::vector<std::size_t>& ids)
 	//checa se tem elemento impar e portanto nao sera pareado
 	const bool hasLeftover = (n % 2 == 1);
 	//perador ternário: condição ? valor_se_verdadeiro : valor_se_falso.
-	const std::size_t straggler = hasLeftover ? ids[n - 1] : 0;
+	const std::size_t leftover = hasLeftover ? ids[n - 1] : 0;
 
 	// 2. ordena os vencedores recursivamente
-	fordJohnsonVector(winners);
+	winners = fordJohnsonVector(winners);
 
 	// 3. cadeia principal: b1 (de graca) + vencedores ordenados
 	std::vector<std::size_t> chain;
@@ -92,35 +92,36 @@ void PmergeMe::fordJohnsonVector(std::vector<std::size_t>& ids)
 	chain.insert(chain.end(), winners.begin(), winners.end());
 
 	// 4. insere b2..bm na ordem de Jacobsthal
-	const std::size_t m = winners.size();
-	std::size_t done = 1, jPrev = 1, jCur = 3;
-	while (done < m) {
-		const std::size_t top = std::min(jCur, m);
-		for (std::size_t k = top; k > done; --k) {
-			const std::size_t w = winners[k - 1];
-			const std::size_t b = loserOf[w];
+	const std::size_t pairCount = winners.size();
+	std::size_t totalInserted = 1, prevLimit = 1, currLimit = 3;
+	while (totalInserted < pairCount) {
+		const std::size_t groupEnd = std::min(currLimit, pairCount);
+		for (std::size_t k = groupEnd - 1; k >= totalInserted; --k) {
+			const std::size_t w = winners[k];
+			const std::size_t l = loserOf[w];
 			std::vector<std::size_t>::iterator bound = std::find(chain.begin(), chain.end(), w);
-			std::vector<std::size_t>::iterator pos = std::lower_bound(chain.begin(), bound, b, cmp);
-			chain.insert(pos, b);
+			std::vector<std::size_t>::iterator pos = std::lower_bound(chain.begin(), bound, l, cmp);
+			chain.insert(pos, l);
 		}
-		done = top;
-		const std::size_t next = jCur + 2 * jPrev;
-		jPrev = jCur;
-		jCur = next;
+		totalInserted = groupEnd;
+		const std::size_t next = currLimit + 2 * prevLimit;
+		prevLimit = currLimit;
+		currLimit = next;
 	}
 
 	// 5. o elemento sobrando: busca binaria na cadeia inteira
 	if (hasLeftover)
-		chain.insert(std::lower_bound(chain.begin(), chain.end(), straggler, cmp), straggler);
+		chain.insert(std::lower_bound(chain.begin(), chain.end(), leftover, cmp), leftover);
 
-	ids = std::move(chain);
+	return chain;
 }
 
-void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
+// void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
+std::deque<std::size_t> PmergeMe::fordJohnsonDeque(const std::deque<std::size_t>& ids) const
 {
 	const std::size_t n = ids.size();
 	if (n < 2)
-		return;
+		return ids;
 
 	const std::vector<int>& d = _input;
 	auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
@@ -136,10 +137,10 @@ void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
 		loserOf[a] = b;
 	}
 	const bool hasLeftover = (n % 2 == 1);
-	const std::size_t straggler = hasLeftover ? ids[n - 1] : 0;
+	const std::size_t leftover = hasLeftover ? ids[n - 1] : 0;
 
 	// 2. ordena os vencedores recursivamente
-	fordJohnsonDeque(winners);
+	winners = fordJohnsonDeque(winners);
 
 	// 3. cadeia principal
 	// inicializa a cadeia
@@ -158,28 +159,40 @@ void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
 	chain.insert(chain.end(), winners.begin(), winners.end());
 
 	// 4. insere b2..bm na ordem de Jacobsthal
-	const std::size_t m = winners.size();
-	std::size_t done = 1, jPrev = 1, jCur = 3;
-	while (done < m) {
-		const std::size_t top = std::min(jCur, m);
-		for (std::size_t k = top; k > done; --k) {
-			const std::size_t w = winners[k - 1];
-			const std::size_t b = loserOf[w];
+	const std::size_t pairCount = winners.size();
+	std::size_t totalInserted = 1, prevLimit = 1, currLimit = 3;
+	while (totalInserted < pairCount) {
+		// Os tamanhos dos grupos vêm da sequência de
+		// Jacobsthal: 1, 3, 5, 11, 21, 43.... Cada
+		// grupo vai do limite anterior + 1 até o limite
+		// atual, e dentro dele a inserção é de trás para frente:
+		const std::size_t groupEnd = std::min(currLimit, pairCount);
+		for (std::size_t k = groupEnd - 1; k >= totalInserted; --k) {
+			const std::size_t w = winners[k];
+			const std::size_t l = loserOf[w];
 			std::deque<std::size_t>::iterator bound = std::find(chain.begin(), chain.end(), w);
-			std::deque<std::size_t>::iterator pos = std::lower_bound(chain.begin(), bound, b, cmp);
-			chain.insert(pos, b);
+			//como a chain usa indices e nao valores é importante
+			// usar a funcao cmp dentro do lower_bound para poder comparar
+			// de fato os valores
+			//O lower_bound faz busca binária: olha para o meio da faixa
+			// e descarta uma das metades, repetindo até restar uma posição.
+			// Ele também não procura o value dentro da faixa.
+			// O value nem precisa estar lá. Ele procura o ponto onde
+			// o value caberia.
+			std::deque<std::size_t>::iterator pos = std::lower_bound(chain.begin(), bound, l, cmp);
+			chain.insert(pos, l);
 		}
-		done = top;
-		const std::size_t next = jCur + 2 * jPrev;
-		jPrev = jCur;
-		jCur = next;
+		totalInserted = groupEnd;
+		const std::size_t next = currLimit + 2 * prevLimit;
+		prevLimit = currLimit;
+		currLimit = next;
 	}
 
 	// 5. o elemento sobrando: busca binaria na cadeia inteira
 	if (hasLeftover)
-		chain.insert(std::lower_bound(chain.begin(), chain.end(), straggler, cmp), straggler);
+		chain.insert(std::lower_bound(chain.begin(), chain.end(), leftover, cmp), leftover);
 
-	ids = std::move(chain);
+	return (chain);
 }
 
 double PmergeMe::sortWithVector()
@@ -193,10 +206,10 @@ double PmergeMe::sortWithVector()
 		ids.push_back(i);
 
 	//sorting
-	fordJohnsonVector(ids);
+	const std::vector<std::size_t> sorted = fordJohnsonVector(ids);
 
 	_vecResult.clear();
-	for (std::vector<std::size_t>::const_iterator it = ids.begin();it != ids.end(); ++it)
+	for (std::vector<std::size_t>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
 		_vecResult.push_back(_input[*it]);
 
 	//marca final
@@ -221,10 +234,10 @@ double PmergeMe::sortWithDeque()
 		ids.push_back(i);
 
 	//sorting
-    fordJohnsonDeque(ids);
+    const std::deque<std::size_t> sorted = fordJohnsonDeque(ids);
 
-    _deqResult.clear();
-    for (std::deque<std::size_t>::const_iterator it = ids.begin();it != ids.end(); ++it)
+	_deqResult.clear();
+	for (std::deque<std::size_t>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
 		_deqResult.push_back(_input[*it]);
 
 	//marca final da contagem do tempo
