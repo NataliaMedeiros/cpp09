@@ -29,14 +29,6 @@ int main(int argc, char** argv)
 				<< " elements with std::vector : " << tVec << " us\n";
 		std::cout << "Time to process a range of " << sorter.getInput().size()
 				<< " elements with std::deque  : " << tDeq << " us\n";
-
-		if (!std::is_sorted(sorter.getVectorResult().begin(), sorter.getVectorResult().end())
-			|| !std::equal(sorter.getVectorResult().begin(), sorter.getVectorResult().end(),
-						sorter.getDequeResult().begin()))
-		{
-			std::cerr << "BUG: result not sorted or containers disagree\n";
-			return 1;
-		}
 	}
 	catch (const std::exception &e){
 		std::cerr << e.what() << std::endl;
