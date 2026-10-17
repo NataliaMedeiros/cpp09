@@ -33,65 +33,33 @@ const std::deque<int>&  PmergeMe::getDequeResult() const
 	return _deqResult;
 }
 
-//ford johnson ordena fazendo poucas comparacoes
-//forma pares e compara cada par
-//ordena so os maiores recursivamente
-//insere os menores de volta na lista numa ordem otimizada
-
 std::vector<std::size_t> PmergeMe::fordJohnsonVector(const std::vector<std::size_t>& ids) const
 {
-	//nesse inicio a ideia é apenas contabilizar a quantidade de elemntos
 	const std::size_t n = ids.size();
-	//esse if é o que faz parar a recursao
 	if (n < 2)
 		return ids;
 
 	const std::vector<int>& d = _input;
-	// cmp é uma lambda (função sem nome, do C++11).
-	//Ela recebe duas posições a e b e responde:
-	//“o valor em a é menor que o valor em b?”
-	//[&d] significa que a lambda enxerga d por referência.
-	// lambda É uma função sem nome, escrita no meio do código (C++11):
-	// a lambda escolhe com informacao que vai entro dos colchetes []
-	// nao usar nada [] colchetes vazio
-	// copiar uma variavel de fora [d] - copia d dentro do lambda
-	// usar referencia sem copiar [&d] - referencia d
-	// [&] tudo que usar usa por referencia
-	//[=] tudo que for usado usa por copia
-	//auto é o tipo da variavel cmp que é pego automaticamente
-	//se eu quisesse explicitar o tipo de retorno da funcao lambida
-	//eu poderia escrever assim
-	//auto cmp = [&d](std::size_t a, std::size_t b) -> bool { return d[a] < d[b]; };
 	auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
 
-	// 1. forma os pares: winners = maior, loserOf = menor
 	std::vector<std::size_t> winners;
 	std::vector<std::size_t> loserOf(d.size(), 0);
 	for (std::size_t i = 0; i + 1 < n; i += 2) {
-		//qui pega os ids
 		std::size_t a = ids[i], b = ids[i + 1];
-		// dentro da funcao  cmp pega os valores por referencia
 		if (cmp(a, b))
 			std::swap(a, b);
 		winners.push_back(a);
-		//loserOf usar o numero de ids[i] pego acima na variavel a, por isso
-		//nunca tem repeticao mesmo se tiver numero repetido
 		loserOf[a] = b;
 	}
-	//checa se tem elemento impar e portanto nao sera pareado
 	const bool hasLeftover = (n % 2 == 1);
-	//perador ternário: condição ? valor_se_verdadeiro : valor_se_falso.
 	const std::size_t leftover = hasLeftover ? ids[n - 1] : 0;
 
-	// 2. ordena os vencedores recursivamente
 	winners = fordJohnsonVector(winners);
 
-	// 3. cadeia principal: b1 (de graca) + vencedores ordenados
 	std::vector<std::size_t> chain;
 	chain.push_back(loserOf[winners[0]]);
 	chain.insert(chain.end(), winners.begin(), winners.end());
 
-	// 4. insere b2..bm na ordem de Jacobsthal
 	const std::size_t pairCount = winners.size();
 	const std::size_t pendCount = pairCount + (hasLeftover ? 1 : 0);
 	std::size_t totalInserted = 1, prevLimit = 1, currLimit = 3;
@@ -104,7 +72,9 @@ std::vector<std::size_t> PmergeMe::fordJohnsonVector(const std::vector<std::size
 				const std::size_t w = winners[k];
 				l = loserOf[w];
 				bound = std::find(chain.begin(), chain.end(), w);
-			}else{
+			}
+			else
+			{
 				l = leftover;
 				bound = chain.end();
 			}
@@ -120,7 +90,6 @@ std::vector<std::size_t> PmergeMe::fordJohnsonVector(const std::vector<std::size
 	return chain;
 }
 
-// void PmergeMe::fordJohnsonDeque(std::deque<std::size_t>& ids)
 std::deque<std::size_t> PmergeMe::fordJohnsonDeque(const std::deque<std::size_t>& ids) const
 {
 	const std::size_t n = ids.size();
@@ -130,7 +99,6 @@ std::deque<std::size_t> PmergeMe::fordJohnsonDeque(const std::deque<std::size_t>
 	const std::vector<int>& d = _input;
 	auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
 
-	// 1. forma os pares: vencedor = maior, perdedor = menor
 	std::deque<std::size_t> winners;
 	std::vector<std::size_t> loserOf(d.size(), 0);
 	for (std::size_t i = 0; i + 1 < n; i += 2) {
@@ -143,54 +111,31 @@ std::deque<std::size_t> PmergeMe::fordJohnsonDeque(const std::deque<std::size_t>
 	const bool hasLeftover = (n % 2 == 1);
 	const std::size_t leftover = hasLeftover ? ids[n - 1] : 0;
 
-	// 2. ordena os vencedores recursivamente
 	winners = fordJohnsonDeque(winners);
 
-	// 3. cadeia principal
-	// inicializa a cadeia
 	std::deque<std::size_t> chain;
-	// nesse caso o loserOf que é par do winner na posicao 0
-	// é chamado primeiro porque a lista de winners da ordenada
-	// em ordem crescente, portando o winner na posicao 0
-	// é o menor de todos os winners, consequentemente o par dele
-	// é menor que ele, pois eles ja foram comparados la atras
-	// de forma que a posicao correta dele é antes de comecar os winners.
 	chain.push_back(loserOf[winners[0]]);
-	//isso copia tods os vencedores para a cadeia chain
-	// de forma que agora o chain é composto pelo par do
-	// winner[0] seguido pela lista de todos os winners, desde
-	// winners[0] ate [winners[winners.size() - 1]]
 	chain.insert(chain.end(), winners.begin(), winners.end());
 
-	// 4. insere b2..bm na ordem de Jacobsthal
 	const std::size_t pairCount = winners.size();
 	const std::size_t pendCount = pairCount + (hasLeftover ? 1 : 0);
 	std::size_t totalInserted = 1, prevLimit = 1, currLimit = 3;
 	while (totalInserted < pendCount) {
-		// Os tamanhos dos grupos vêm da sequência de
-		// Jacobsthal: 1, 3, 5, 11, 21, 43.... Cada
-		// grupo vai do limite anterior + 1 até o limite
-		// atual, e dentro dele a inserção é de trás para frente:
 		const std::size_t groupEnd = std::min(currLimit, pendCount);
 		for (std::size_t k = groupEnd - 1; k >= totalInserted; --k) {
 			std::size_t l;
 			std::deque<std::size_t>::iterator bound;
-			if (k < pairCount) {
+			if (k < pairCount)
+			{
 				const std::size_t w = winners[k];
 				l = loserOf[w];
 				bound = std::find(chain.begin(), chain.end(), w);
-			} else {
+			}
+			else
+			{
 				l = leftover;
 				bound = chain.end();
 			}
-			//como a chain usa indices e nao valores é importante
-			// usar a funcao cmp dentro do lower_bound para poder comparar
-			// de fato os valores
-			//O lower_bound faz busca binária: olha para o meio da faixa
-			// e descarta uma das metades, repetindo até restar uma posição.
-			// Ele também não procura o value dentro da faixa.
-			// O value nem precisa estar lá. Ele procura o ponto onde
-			// o value caberia.
 			std::deque<std::size_t>::iterator pos = std::lower_bound(chain.begin(), bound, l, cmp);
 			chain.insert(pos, l);
 		}
@@ -199,56 +144,40 @@ std::deque<std::size_t> PmergeMe::fordJohnsonDeque(const std::deque<std::size_t>
 		prevLimit = currLimit;
 		currLimit = next;
 	}
-
-	return (chain);
+	return chain;
 }
 
 double PmergeMe::sortWithVector()
 {
-	//inicia a contagem do tempo
 	auto start = std::chrono::steady_clock::now();
-	//cria ids com os indices (numeros de posicao de cada elemento)
-	//usar indice é melhor que valor quando o codigo aceita duplicados
 	std::vector<std::size_t> ids;
 	for (std::size_t i = 0; i < _input.size(); ++i)
 		ids.push_back(i);
 
-	//sorting
 	const std::vector<std::size_t> sorted = fordJohnsonVector(ids);
 
 	_vecResult.clear();
 	for (std::vector<std::size_t>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
 		_vecResult.push_back(_input[*it]);
 
-	//marca final
 	auto end = std::chrono::steady_clock::now();
 	return std::chrono::duration<double, std::micro>(end - start).count();
 }
 
 double PmergeMe::sortWithDeque()
 {
-	//inicia a contagem do tempo
-	// steady_clock: um relógio monotônico.
-		//Ele só avança e nunca é ajustado
-		// (por mudança de horário, fuso ou
-		// sincronização de rede). É o relógio
-		// certo para medir intervalos.
-	//::now(): função estática que retorna o instante atual desse relógio.
-	//auto start: o compilador deduz o tipo da variável sozinho.
 	auto start = std::chrono::steady_clock::now();
-	//cria ids com os indices
-    std::deque<std::size_t> ids;
-    for (std::size_t i = 0; i < _input.size(); ++i)
+	std::deque<std::size_t> ids;
+	for (std::size_t i = 0; i < _input.size(); ++i)
 		ids.push_back(i);
 
-	//sorting
-    const std::deque<std::size_t> sorted = fordJohnsonDeque(ids);
+
+		const std::deque<std::size_t> sorted = fordJohnsonDeque(ids);
 
 	_deqResult.clear();
 	for (std::deque<std::size_t>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
 		_deqResult.push_back(_input[*it]);
 
-	//marca final da contagem do tempo
     auto end = std::chrono::steady_clock::now();
     return std::chrono::duration<double, std::micro>(end - start).count();
 }
@@ -265,83 +194,10 @@ void PmergeMe::parser(int argc, char** argv)
 	}
 }
 
+// Ford-Johnson (merge-insertion sort): sorts using few comparisons.
+// 1. Pair up the elements and compare each pair (winner = larger).
+// 2. Recursively sort the winners.
+// 3. Insert the losers back, with binary search, in Jacobsthal order
+//    (an unpaired element counts as the last loser).
 
-// ids = indices into _input, sorted in place by the value they point to.
-// template <typename Cont>
-// void PmergeMe::fordJohnson(Cont& ids) const
-// {
-//     const std::size_t n = ids.size();
-//     if (n < 2) return;
-
-//     const std::vector<int>& d = _input;
-//     auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
-
-//     // 1. Pair up: winner = bigger, loser = smaller
-//     Cont winners;
-//     std::vector<std::size_t> loserOf(d.size(), 0);
-//     for (std::size_t i = 0; i + 1 < n; i += 2) {
-//         std::size_t a = ids[i], b = ids[i + 1];
-//         if (cmp(a, b)) std::swap(a, b);
-//         winners.push_back(a);
-//         loserOf[a] = b;
-//     }
-//     const bool hasStraggler = (n % 2 == 1);
-//     const std::size_t straggler = hasStraggler ? ids[n - 1] : 0;
-
-//     // 2. Recursively sort the winners
-//     fordJohnson(winners);
-
-//     // 3. Main chain: b1 (free), then the sorted winners
-//     Cont chain;
-//     chain.push_back(loserOf[winners[0]]);
-//     chain.insert(chain.end(), winners.begin(), winners.end());
-
-//     // 4. Insert b2..bm in Jacobsthal order (3,2 | 5,4 | 11,10,...,6 | ...)
-//     const std::size_t m = winners.size();
-//     std::size_t done = 1, jPrev = 1, jCur = 3;
-//     while (done < m) {
-//         const std::size_t top = std::min(jCur, m);
-//         for (std::size_t k = top; k > done; --k) {
-//             const std::size_t w = winners[k - 1];
-//             const std::size_t b = loserOf[w];
-//             typename Cont::iterator bound = std::find(chain.begin(), chain.end(), w);
-//             typename Cont::iterator pos = std::lower_bound(chain.begin(), bound, b, cmp);
-//             chain.insert(pos, b);
-//         }
-//         done = top;
-//         const std::size_t next = jCur + 2 * jPrev;
-//         jPrev = jCur;
-//         jCur = next;
-//     }
-
-//     // 5. Straggler: binary search the whole chain
-//     if (hasStraggler)
-//         chain.insert(std::lower_bound(chain.begin(), chain.end(), straggler, cmp), straggler);
-
-//     ids = std::move(chain);
-// }
-
-//OutCont means Output Container e é o tipo do container de saida
-//no caso desse exercicio o OutCont ou é o out daindo para
-//vector<int> as _vecResult ou para deque<int> saindo para o deqResult
-// template <typename IdCont, typename OutCont>
-// double PmergeMe::sortAndTime(OutCont& out) const
-// {
-// 	//inicia a contagem do tempo
-// 	auto start = std::chrono::steady_clock::now();
-// 	//cria ids com os indices
-//     IdCont ids;
-//     for (std::size_t i = 0; i < _input.size(); ++i)
-// 		ids.push_back(i);
-
-// 	//sorting
-//     fordJohnson(ids);
-
-//     out.clear();
-//     for (typename IdCont::const_iterator it = ids.begin();it != ids.end(); ++it)
-// 	out.push_back(_input[*it]);
-
-// 	//marca final
-//     auto end = std::chrono::steady_clock::now();
-//     return std::chrono::duration<double, std::micro>(end - start).count();
-// }
+// Group limits follow the Jacobsthal numbers (3, 5, 11, 21...).

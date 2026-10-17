@@ -19,10 +19,8 @@ class PmergeMe
 		std::vector<int> _vecResult;
 		std::deque<int>  _deqResult;
 
-		// void fordJohnsonVector(std::vector<std::size_t>&);
 		std::vector<std::size_t> fordJohnsonVector(const std::vector<std::size_t>& ids) const;
 
-		// void fordJohnsonDeque(std::deque<std::size_t>&);
 		std::deque<std::size_t> fordJohnsonDeque(const std::deque<std::size_t>& ids) const;
 
 	public:
@@ -31,8 +29,8 @@ class PmergeMe
 		PmergeMe& operator=(const PmergeMe& other);
 		~PmergeMe();
 
-		double sortWithVector();   // sorts, returns time in microseconds
-		double sortWithDeque();    // sorts, returns time in microseconds
+		double sortWithVector();
+		double sortWithDeque();
 
 		const std::vector<int>& getInput() const;
 		const std::vector<int>& getVectorResult() const;
