@@ -172,7 +172,7 @@ double PmergeMe::sortWithDeque()
 		ids.push_back(i);
 
 
-		const std::deque<std::size_t> sorted = fordJohnsonDeque(ids);
+	const std::deque<std::size_t> sorted = fordJohnsonDeque(ids);
 
 	_deqResult.clear();
 	for (std::deque<std::size_t>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
