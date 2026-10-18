@@ -1,0 +1,134 @@
+## Exercise 02: PmergeMe
+
+A program that sorts a sequence of positive integers using the **Ford-Johnson** algorithm (merge-insertion sort), implemented with two STL containers: `std::vector` and `std::deque`. It prints the sequence before and after sorting, and the time taken by each container.
+
+```
+$> ./PmergeMe 3 5 9 7 4
+Before: 3 5 9 7 4
+After: 3 4 5 7 9
+Time to process a range of 5 elements with std::vector : 0.9 us
+Time to process a range of 5 elements with std::deque  : 0.6 us
+```
+
+### Design choices
+
+| Topic | Decision |
+|---|---|
+| Containers | `std::vector` and `std::deque` (`map` and `stack` were already used in ex00 and ex01) |
+| Duplicates | **Accepted.** The subject leaves this to each student, and the sorting works with repeated values |
+| Zero | **Rejected.** The subject asks for *positive* integers |
+| Amount of numbers | No upper limit. The subject asks for "at least 3000" |
+| C++ standard | C++11 (`-std=c++11`). Codam does not enforce C++98 |
+
+---
+
+### The Ford-Johnson algorithm
+
+Ford-Johnson was designed to **save comparisons**, not necessarily to be the fastest in practice.
+
+The idea has four steps:
+
+1. **Form pairs.** The elements are grouped two by two and each pair is compared. The larger one is the *winner* and the smaller one is the *loser*. If `n` is odd, one element has no pair (the `leftover`).
+2. **Sort the winners, recursively.** The function calls itself with the list of winners, which is half the size. The recursion stops when 0 or 1 elements remain.
+3. **Build the main chain.** The chain starts with the sorted winners. Before them goes the loser of the smallest winner (`b1`), with no comparison needed: it is smaller than its winner, and that winner is the smallest of all.
+4. **Insert the remaining losers** (`b2, b3, ...`) into the chain using **binary search**, in a specific order (Jacobsthal). The `leftover`, if there is one, counts as the last loser.
+
+#### Why the search is bounded
+
+Each loser `b_k` is smaller than or equal to its winner `a_k`, and `a_k` is already in the chain. So there is no need to look for the place of `b_k` after `a_k`. The binary search only covers the chain from its start up to the position of `a_k`, which reduces the number of comparisons. The `leftover` has no winner, so its search covers the whole chain.
+
+#### The Jacobsthal order
+
+If the losers were inserted in the order `b2, b3, b4, ...`, the search ranges would have uneven sizes and the binary search would waste comparisons. Ford-Johnson inserts them in groups, and inside each group **from the largest index to the smallest**:
+
+```
+group 1:  b3, b2
+group 2:  b5, b4
+group 3:  b11, b10, b9, b8, b7, b6
+group 4:  b21, b20, ..., b12
+```
+
+The group limits (3, 5, 11, 21, 43...) are the **Jacobsthal numbers**. With this order, each insertion searches a range of at most `2^k - 1` elements, which is the size where binary search makes the best use of its comparisons.
+
+#### The Jacobsthal sequence
+
+```
+J(0) = 0
+J(1) = 1
+J(n) = J(n-1) + 2 * J(n-2)
+
+0, 1, 1, 3, 5, 11, 21, 43, ...
+```
+
+In the code, `prevLimit` and `currLimit` start at `1` and `3` (`b1` is already inserted) and advance with `next = currLimit + 2 * prevLimit`.
+
+---
+
+### How I solved it
+
+#### Sorting indices instead of values
+
+Instead of sorting the numbers themselves, the program sorts a list of **indices** (`ids`, the positions of the numbers in `_input`). The comparison looks at the value each index points to:
+
+```cpp
+auto cmp = [&d](std::size_t a, std::size_t b) { return d[a] < d[b]; };
+```
+
+The reason is to keep each winner linked to its loser. After the recursion reorders the winners, we still need to know who the loser of each one was. The table `loserOf[winner] = loser` solves this, and it works because the key is an **index, which is unique**. If the key were the value, repeated numbers would overwrite each other. That is why **duplicates work**.
+
+Example, with the input `5 2 7 4 9`:
+
+```
+_input:    [5, 2, 7, 4, 9]
+position:   0  1  2  3  4
+```
+
+#### Step by step
+
+```
+Call 1  ids = [0,1,2,3,4]
+  pairs:  (0,1) → winner 0 (5), loser 1 (2)
+          (2,3) → winner 2 (7), loser 3 (4)
+  leftover: 4 (value 9)
+  recursion with winners = [0, 2]
+
+  Call 2  ids = [0, 2]
+    pair (0,2): 5 < 7, so the winner is 2 and the loser is 0
+    recursion with [2] → base case
+    chain = [0, 2]                  (values 5, 7)
+
+  sorted winners = [0, 2]           (values 5, 7)
+  chain = [1, 0, 2]                 (values 2, 5, 7)   b1 + winners
+  pending: loser 3 (value 4) and the leftover 4 (value 9, counts as the last loser)
+  group limit 3, inserting from the largest index down:
+    leftover 4 (value 9): binary search over the whole chain
+    chain = [1, 0, 2, 4]            (values 2, 5, 7, 9)
+    loser 3 (value 4): binary search only before its winner 2
+    chain = [1, 3, 0, 2, 4]         (values 2, 4, 5, 7, 9)
+```
+
+In the end, the indices are converted back to values: `2 4 5 7 9`.
+
+#### Why two functions instead of a template
+
+The subject recommends implementing the algorithm for each container. Both functions have the same logic, but each one uses its own container from start to finish. The difference between the two is internal:
+
+- `std::vector`: contiguous memory. Inserting in the middle shifts every following element.
+- `std::deque`: stored in blocks. Inserting in the middle shifts from the shorter side, and index access has an extra computation.
+
+#### Returning by value
+
+`fordJohnsonVector` and `fordJohnsonDeque` receive the list by `const&` and **return** the finished chain. This way the parameter is never modified and the function has no side effects. In C++11, returning a local container does not copy: the compiler moves it or elides the copy.
+
+---
+
+### Time measurement
+
+The subject asks that the time includes **both the sorting part and the data management part**. The timer uses `std::chrono::steady_clock`, a monotonic clock (not affected by system time adjustments). For each container, it measures:
+
+1. filling the index container,
+2. the sorting (`fordJohnson...`),
+3. building the final result.
+
+```cpp
+auto
